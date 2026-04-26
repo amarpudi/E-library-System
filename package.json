@@ -1,14 +1,14 @@
 {
-  "name": "backend",
+  "name": "e-library-system",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "LuminaLib E-Library Management System",
+  "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js"
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": "18.x"
   },
   "keywords": [],
   "author": "",
