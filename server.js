@@ -13,11 +13,10 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Database Setup — uses better-sqlite3 (works on Linux/Railway)
+// Database Setup
 const dbPath = path.join(__dirname, 'library.sqlite');
 const sequelize = new Sequelize({
   dialect: 'sqlite',
-  dialectModule: require('better-sqlite3'),
   storage: dbPath,
   logging: false,
 });
