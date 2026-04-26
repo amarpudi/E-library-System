@@ -20,7 +20,7 @@ function Dashboard({ user }) {
   const fetchDashboard = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:5000/api/users/dashboard', {
+      const res = await fetch(`${process.env.REACT_APP_API_URL}/api/users/dashboard`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -35,7 +35,7 @@ function Dashboard({ user }) {
     setReturning(recordId);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:5000/api/transactions/return', {
+      const res = await fetch(`${process.env.REACT_APP_API_URL}/api/transactions/return`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ recordId })

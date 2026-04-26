@@ -62,7 +62,7 @@ function AdminPanel({ user }) {
   const fetchBooks = async () => {
     setBooksLoading(true);
     try {
-      const res = await fetch('http://localhost:5000/api/books');
+      const res = await fetch(`${process.env.REACT_APP_API_URL}/api/books`);
       const data = await res.json();
       setBooks(data);
     } catch {
@@ -85,7 +85,7 @@ function AdminPanel({ user }) {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:5000/api/books', {
+      const res = await fetch(`${process.env.REACT_APP_API_URL}/api/books`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -110,7 +110,7 @@ function AdminPanel({ user }) {
     setDeleteId(id);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`http://localhost:5000/api/books/${id}`, {
+      const res = await fetch(`${process.env.REACT_APP_API_URL}/api/books/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });

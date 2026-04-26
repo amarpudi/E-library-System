@@ -162,7 +162,7 @@ function Reader() {
   const [useFallback, setUseFallback] = useState(false);
 
   useEffect(() => {
-    fetch(`http://localhost:5000/api/books/${bookId}`)
+    fetch(`${process.env.REACT_APP_API_URL}/api/books/${bookId}`)
       .then(r => r.json())
       .then(async (data) => {
         setBook(data);

@@ -53,7 +53,7 @@ async function borrowExternal(book) {
     const r = await fetch(`${OL}${book.olKey}.json`);
     if (r.ok) { const d = await r.json(); const desc = d.description; description = typeof desc==='string'?desc:(desc?.value||''); }
   } catch {}
-  const res = await fetch('http://localhost:5000/api/transactions/borrow-external', {
+  const res = await fetch(`${process.env.REACT_APP_API_URL}/api/transactions/borrow-external`, {
     method:'POST',
     headers:{'Content-Type':'application/json', Authorization:`Bearer ${token}`},
     body: JSON.stringify({ title:book.title, author:book.author, genre:book.subjects[0]||'', description:description.slice(0,1000), coverImage:book.coverId?COVER(book.coverId,'L'):'', pdfUrl:book.link }),
@@ -71,7 +71,7 @@ async function addToLibrary(book) {
     const r = await fetch(`${OL}${book.olKey}.json`);
     if (r.ok) { const d = await r.json(); const desc = d.description; description = typeof desc==='string'?desc:(desc?.value||''); }
   } catch {}
-  const res = await fetch('http://localhost:5000/api/books', {
+  const res = await fetch(`${process.env.REACT_APP_API_URL}/api/books`, {
     method:'POST',
     headers:{'Content-Type':'application/json', Authorization:`Bearer ${token}`},
     body: JSON.stringify({ title:book.title, author:book.author, genre:book.subjects[0]||'', description:description.slice(0,1000), coverImage:book.coverId?COVER(book.coverId,'L'):'', pdfUrl:book.link }),
@@ -329,12 +329,12 @@ function LocalCatalog() {
   const navigate=useNavigate();
   useEffect(()=>{
     setLoading(true);
-    const url=query?`http://localhost:5000/api/books?search=${encodeURIComponent(query)}`:'http://localhost:5000/api/books';
+    const url=query?`${process.env.REACT_APP_API_URL}/api/books?search=${encodeURIComponent(query)}`:`${process.env.REACT_APP_API_URL}/api/books`;
     fetch(url).then(r=>r.json()).then(setBooks).catch(()=>{}).finally(()=>setLoading(false));
   },[query]);
   const borrow=async(id)=>{
     const token=localStorage.getItem('token'); if(!token){navigate('/login');return;}
-    const r=await fetch('http://localhost:5000/api/transactions/borrow',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({bookId:id})});
+    const r=await fetch(`${process.env.REACT_APP_API_URL}/api/transactions/borrow`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({bookId:id})});
     const d=await r.json(); if(r.ok){alert('Borrowed!');setBooks(p=>p.map(b=>b.id===id?{...b,available:false}:b));}else alert(d.error);
   };
   return <div>
