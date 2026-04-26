@@ -5,7 +5,6 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 const app = express();
-const port = 5000;
 const SECRET_KEY = 'super_secret_library_key';
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
@@ -18,9 +17,15 @@ app.use(cors());
 app.use(express.json());
 
 // Database Setup
+// const sequelize = new Sequelize({
+//   dialect: 'sqlite',
+//   storage: './library.sqlite',
+//   logging: false,
+// });
+
 const sequelize = new Sequelize({
   dialect: 'sqlite',
-  storage: './library.sqlite',
+  storage: dbPath,
   logging: false,
 });
 
@@ -53,7 +58,7 @@ Book.hasMany(BorrowRecord);
 BorrowRecord.belongsTo(Book);
 
 // Sync DB and Add Dummy Data
-sequelize.sync({ force: true }).then(async () => {
+sequelize.sync().then(async () => {
   console.log('Database synced');
   
   // Create Dummy Admin
@@ -308,6 +313,3 @@ app.get('/api/users/dashboard', authenticateToken, async (req, res) => {
   res.json(records);
 });
 
-app.listen(port, () => {
-  console.log(`Backend running on http://localhost:${port}`);
-});
