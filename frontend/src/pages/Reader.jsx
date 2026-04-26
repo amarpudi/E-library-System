@@ -65,15 +65,14 @@ function Spin({ label }) {
 
 /* ── Fallback card with external links ── */
 function FallbackReader({ book }) {
-  const links = [
-    { label: 'Search on Open Library', url: `${OL}/search?q=${encodeURIComponent(book.title)}`, icon: <BookMarked size={18} />, color: '#818cf8' },
-    { label: 'Search on Project Gutenberg', url: gutenbergUrl(book.title, book.author), icon: <FileText size={18} />, color: '#4ade80' },
-    { label: 'Find Free Online Version', url: googleBooksUrl(book.title, book.author), icon: <Globe size={18} />, color: '#60a5fa' },
-  ];
+  const olReadUrl = openLibraryReadUrl(book.pdfUrl);
 
-  if (openLibraryReadUrl(book.pdfUrl)) {
-    links.unshift({ label: 'Read on Open Library', url: openLibraryReadUrl(book.pdfUrl), icon: <BookOpen size={18} />, color: '#c084fc' });
-  }
+  const links = [
+    olReadUrl && { label: 'Read on Open Library', url: olReadUrl, icon: <BookOpen size={18} />, color: '#c084fc' },
+    { label: 'Search on Project Gutenberg', url: gutenbergUrl(book.title, book.author), icon: <FileText size={18} />, color: '#4ade80' },
+    { label: 'Search on Open Library', url: `${OL}/search?q=${encodeURIComponent(book.title)}`, icon: <BookMarked size={18} />, color: '#818cf8' },
+    { label: 'Find Free Online Version', url: googleBooksUrl(book.title, book.author), icon: <Globe size={18} />, color: '#60a5fa' },
+  ].filter(Boolean);
 
   return (
     <div style={{ maxWidth: '680px', margin: '0 auto' }}>

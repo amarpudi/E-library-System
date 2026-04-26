@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, BookOpen, Download, ExternalLink, Loader2, User, FileText, Globe } from 'lucide-react';
+import { ArrowLeft, BookOpen, Download, ExternalLink, Loader2, User, FileText, Globe, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const GUTENDEX = 'https://gutendex.com/books';
+
+// Reliable CORS proxy (allorigins.win is more stable than corsproxy.io)
+const PROXY = (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
 
 function getCover(book) { return book.formats?.['image/jpeg'] || null; }
 function getHtmlUrl(book) {
   return book.formats?.['text/html'] || book.formats?.['text/html; charset=utf-8'] || null;
 }
 function getTextUrl(book) {
-  return book.formats?.['text/plain'] || book.formats?.['text/plain; charset=utf-8'] || null;
+  return book.formats?.['text/plain; charset=utf-8'] || book.formats?.['text/plain'] || null;
 }
 function getEpubUrl(book) { return book.formats?.['application/epub+zip'] || null; }
 
@@ -22,8 +25,8 @@ function Spin({ label }) {
   );
 }
 
-/* Plain-text reader with pagination */
-function TextReader({ url, title }) {
+/* ── Plain-text reader with pagination ── */
+function TextReader({ url }) {
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -31,10 +34,11 @@ function TextReader({ url, title }) {
   const CHARS = 4000;
 
   useEffect(() => {
-    setLoading(true);
-    // Use a CORS proxy to fetch the text
-    fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`)
+    setLoading(true); setError(false); setPage(0);
+    // Try direct first, then proxy
+    fetch(url)
       .then(r => { if (!r.ok) throw new Error(); return r.text(); })
+      .catch(() => fetch(PROXY(url)).then(r => { if (!r.ok) throw new Error(); return r.text(); }))
       .then(t => { setText(t); setLoading(false); })
       .catch(() => { setError(true); setLoading(false); });
   }, [url]);
@@ -43,9 +47,9 @@ function TextReader({ url, title }) {
   if (error) return (
     <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
       <FileText size={40} style={{ opacity: .4, marginBottom: '1rem' }} />
-      <p>Could not load text directly.</p>
-      <a href={url} target="_blank" rel="noopener noreferrer" className="btn" style={{ marginTop: '1rem', display: 'inline-flex', textDecoration: 'none' }}>
-        <ExternalLink size={16} /> Open in New Tab
+      <p style={{ marginBottom: '1.2rem' }}>Could not load text directly.</p>
+      <a href={url} target="_blank" rel="noopener noreferrer" className="btn" style={{ display: 'inline-flex', textDecoration: 'none' }}>
+        <ExternalLink size={16} /> Open on Gutenberg
       </a>
     </div>
   );
@@ -55,7 +59,6 @@ function TextReader({ url, title }) {
 
   return (
     <div>
-      {/* Text content */}
       <div style={{
         background: '#fff', color: '#1e293b', borderRadius: '12px', padding: '2.5rem 3rem',
         fontFamily: "'Georgia', serif", lineHeight: 1.9, fontSize: '1.05rem',
@@ -64,34 +67,57 @@ function TextReader({ url, title }) {
       }}>
         {chunk}
       </div>
-
-      {/* Page controls */}
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1.5rem', marginTop: '1.5rem', flexWrap: 'wrap' }}>
-        <button className="btn btn-secondary" onClick={() => { setPage(p => Math.max(0, p - 1)); }} disabled={page === 0} style={{ opacity: page === 0 ? .4 : 1 }}>
-          ← Previous
+        <button className="btn btn-secondary" onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0} style={{ opacity: page === 0 ? .4 : 1 }}>
+          <ChevronLeft size={16} /> Previous
         </button>
         <span style={{ color: 'var(--text-muted)', fontSize: '.9rem' }}>
           Section <strong style={{ color: 'var(--text-main)' }}>{page + 1}</strong> of {pages}
         </span>
-        <button className="btn btn-secondary" onClick={() => { setPage(p => Math.min(pages - 1, p + 1)); }} disabled={page === pages - 1} style={{ opacity: page === pages - 1 ? .4 : 1 }}>
-          Next →
+        <button className="btn btn-secondary" onClick={() => setPage(p => Math.min(pages - 1, p + 1))} disabled={page === pages - 1} style={{ opacity: page === pages - 1 ? .4 : 1 }}>
+          Next <ChevronRight size={16} />
         </button>
       </div>
     </div>
   );
 }
 
-/* HTML iframe reader */
-function HtmlReader({ url }) {
-  const [loaded, setLoaded] = useState(false);
+/* ── HTML reader: fetches via proxy, renders as safe HTML blob ── */
+function HtmlReader({ url, title }) {
+  const [html, setHtml] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    setLoading(true); setError(false);
+    fetch(url)
+      .then(r => { if (!r.ok) throw new Error(); return r.text(); })
+      .catch(() => fetch(PROXY(url)).then(r => { if (!r.ok) throw new Error(); return r.text(); }))
+      .then(t => { setHtml(t); setLoading(false); })
+      .catch(() => { setError(true); setLoading(false); });
+  }, [url]);
+
+  if (loading) return <Spin label="Loading ebook..." />;
+  if (error) return (
+    <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+      <BookOpen size={40} style={{ opacity: .4, marginBottom: '1rem' }} />
+      <p style={{ marginBottom: '1.2rem' }}>Could not load HTML version.</p>
+      <a href={url} target="_blank" rel="noopener noreferrer" className="btn" style={{ display: 'inline-flex', textDecoration: 'none' }}>
+        <ExternalLink size={16} /> Open on Gutenberg
+      </a>
+    </div>
+  );
+
+  // Render inside a sandboxed blob iframe
+  const blob = new Blob([html], { type: 'text/html' });
+  const blobUrl = URL.createObjectURL(blob);
+
   return (
     <div style={{ position: 'relative' }}>
-      {!loaded && <Spin label="Loading ebook..." />}
       <iframe
-        src={url}
-        title="Ebook Reader"
-        style={{ width: '100%', minHeight: '75vh', border: 'none', borderRadius: '12px', display: loaded ? 'block' : 'none', background: '#fff' }}
-        onLoad={() => setLoaded(true)}
+        src={blobUrl}
+        title={`Reading: ${title}`}
+        style={{ width: '100%', minHeight: '75vh', border: 'none', borderRadius: '12px', background: '#fff' }}
         sandbox="allow-same-origin allow-scripts"
       />
     </div>
@@ -207,10 +233,10 @@ export default function EbookReader() {
       )}
 
       {/* HTML reader */}
-      {mode === 'html' && htmlUrl && <HtmlReader url={htmlUrl} />}
+      {mode === 'html' && htmlUrl && <HtmlReader url={htmlUrl} title={book.title} />}
 
       {/* Text reader */}
-      {mode === 'text' && textUrl && <TextReader url={textUrl} title={book.title} />}
+      {mode === 'text' && textUrl && <TextReader url={textUrl} />}
     </div>
   );
 }
