@@ -1,26 +1,23 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const { Sequelize, DataTypes } = require('sequelize');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 const app = express();
-const SECRET_KEY = 'super_secret_library_key';
+const SECRET_KEY = process.env.SECRET_KEY || 'super_secret_library_key';
 const PORT = process.env.PORT || 3000;
 
-// Start Server
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
-const path = require("path");
-const dbPath = path.join(__dirname, "library.sqlite");
 // Middleware
 app.use(cors());
 app.use(express.json());
 
-// Database Setup
+// Database Setup — uses better-sqlite3 (works on Linux/Railway)
+const dbPath = path.join(__dirname, 'library.sqlite');
 const sequelize = new Sequelize({
   dialect: 'sqlite',
+  dialectModule: require('better-sqlite3'),
   storage: dbPath,
   logging: false,
 });
@@ -53,54 +50,57 @@ BorrowRecord.belongsTo(User);
 Book.hasMany(BorrowRecord);
 BorrowRecord.belongsTo(Book);
 
-// Sync DB and Add Dummy Data
+// Sync DB and seed dummy data (only if tables are empty)
 sequelize.sync().then(async () => {
   console.log('Database synced');
-  
-  // Create Dummy Admin
-  const hashedAdminPassword = await bcrypt.hash('admin123', 10);
-  await User.create({ username: 'admin', password: hashedAdminPassword, role: 'admin' });
-  
-  // Create Dummy User
-  const hashedUserPassword = await bcrypt.hash('user123', 10);
-  await User.create({ username: 'user', password: hashedUserPassword, role: 'user' });
 
-  // Create Dummy Books
-  await Book.bulkCreate([
-    {
-      title: 'The Great Gatsby',
-      author: 'F. Scott Fitzgerald',
-      genre: 'Classic',
-      description: 'A story of the mysteriously wealthy Jay Gatsby and his love for the beautiful Daisy Buchanan.',
-      coverImage: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=600&auto=format&fit=crop',
-      pdfUrl: '#'
-    },
-    {
-      title: '1984',
-      author: 'George Orwell',
-      genre: 'Dystopian',
-      description: 'Among the seminal texts of the 20th century, Nineteen Eighty-Four is a rare work that grows more haunting as its futuristic purgatory becomes more real.',
-      coverImage: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?q=80&w=600&auto=format&fit=crop',
-      pdfUrl: '#'
-    },
-    {
-      title: 'To Kill a Mockingbird',
-      author: 'Harper Lee',
-      genre: 'Fiction',
-      description: 'The unforgettable novel of a childhood in a sleepy Southern town and the crisis of conscience that rocked it.',
-      coverImage: 'https://images.unsplash.com/photo-1495640388908-05fa85288e61?q=80&w=600&auto=format&fit=crop',
-      pdfUrl: '#'
-    },
-    {
-      title: 'Pride and Prejudice',
-      author: 'Jane Austen',
-      genre: 'Romance',
-      description: 'Since its immediate success in 1813, Pride and Prejudice has remained one of the most popular novels in the English language.',
-      coverImage: 'https://images.unsplash.com/photo-1589829085413-56de8ae18c73?q=80&w=600&auto=format&fit=crop',
-      pdfUrl: '#'
-    }
-  ]);
-  console.log('Dummy data inserted');
+  const userCount = await User.count();
+  if (userCount === 0) {
+    // Create Dummy Admin
+    const hashedAdminPassword = await bcrypt.hash('admin123', 10);
+    await User.create({ username: 'admin', password: hashedAdminPassword, role: 'admin' });
+
+    // Create Dummy User
+    const hashedUserPassword = await bcrypt.hash('user123', 10);
+    await User.create({ username: 'user', password: hashedUserPassword, role: 'user' });
+
+    // Create Dummy Books
+    await Book.bulkCreate([
+      {
+        title: 'The Great Gatsby',
+        author: 'F. Scott Fitzgerald',
+        genre: 'Classic',
+        description: 'A story of the mysteriously wealthy Jay Gatsby and his love for the beautiful Daisy Buchanan.',
+        coverImage: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=600&auto=format&fit=crop',
+        pdfUrl: '#'
+      },
+      {
+        title: '1984',
+        author: 'George Orwell',
+        genre: 'Dystopian',
+        description: 'Among the seminal texts of the 20th century, Nineteen Eighty-Four is a rare work that grows more haunting as its futuristic purgatory becomes more real.',
+        coverImage: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?q=80&w=600&auto=format&fit=crop',
+        pdfUrl: '#'
+      },
+      {
+        title: 'To Kill a Mockingbird',
+        author: 'Harper Lee',
+        genre: 'Fiction',
+        description: 'The unforgettable novel of a childhood in a sleepy Southern town and the crisis of conscience that rocked it.',
+        coverImage: 'https://images.unsplash.com/photo-1495640388908-05fa85288e61?q=80&w=600&auto=format&fit=crop',
+        pdfUrl: '#'
+      },
+      {
+        title: 'Pride and Prejudice',
+        author: 'Jane Austen',
+        genre: 'Romance',
+        description: 'Since its immediate success in 1813, Pride and Prejudice has remained one of the most popular novels in the English language.',
+        coverImage: 'https://images.unsplash.com/photo-1589829085413-56de8ae18c73?q=80&w=600&auto=format&fit=crop',
+        pdfUrl: '#'
+      }
+    ]);
+    console.log('Dummy data inserted');
+  }
 });
 
 // Auth Middleware
@@ -125,7 +125,6 @@ const requireAdmin = (req, res, next) => {
 };
 
 // Routes
-
 app.get('/', (req, res) => {
   res.send('E-Library Backend is running! Please use the frontend application to interact with the system.');
 });
@@ -135,7 +134,7 @@ app.post('/api/auth/register', async (req, res) => {
   try {
     const { username, password } = req.body;
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = await User.create({ username, password: hashedPassword });
+    await User.create({ username, password: hashedPassword });
     res.status(201).json({ message: 'User registered successfully' });
   } catch (error) {
     res.status(400).json({ error: 'Username already exists' });
@@ -145,13 +144,17 @@ app.post('/api/auth/register', async (req, res) => {
 app.post('/api/auth/login', async (req, res) => {
   const { username, password } = req.body;
   const user = await User.findOne({ where: { username } });
-  
+
   if (!user) return res.status(400).json({ error: 'User not found' });
-  
+
   const validPassword = await bcrypt.compare(password, user.password);
   if (!validPassword) return res.status(400).json({ error: 'Invalid password' });
-  
-  const token = jwt.sign({ id: user.id, username: user.username, role: user.role }, SECRET_KEY, { expiresIn: '24h' });
+
+  const token = jwt.sign(
+    { id: user.id, username: user.username, role: user.role },
+    SECRET_KEY,
+    { expiresIn: '24h' }
+  );
   res.json({ token, user: { id: user.id, username: user.username, role: user.role } });
 });
 
@@ -159,7 +162,7 @@ app.post('/api/auth/login', async (req, res) => {
 app.get('/api/books', async (req, res) => {
   const { search } = req.query;
   let whereClause = {};
-  
+
   if (search) {
     whereClause = {
       [Sequelize.Op.or]: [
@@ -169,7 +172,7 @@ app.get('/api/books', async (req, res) => {
       ]
     };
   }
-  
+
   const books = await Book.findAll({ where: whereClause });
   res.json(books);
 });
@@ -219,19 +222,19 @@ app.delete('/api/books/:id', authenticateToken, requireAdmin, async (req, res) =
 app.post('/api/transactions/borrow', authenticateToken, async (req, res) => {
   const { bookId } = req.body;
   const userId = req.user.id;
-  
+
   const book = await Book.findByPk(bookId);
   if (!book || !book.available) {
     return res.status(400).json({ error: 'Book not available' });
   }
-  
+
   await BorrowRecord.create({ UserId: userId, BookId: bookId });
   await book.update({ available: false });
-  
+
   res.json({ message: 'Book borrowed successfully' });
 });
 
-// Borrow a World Catalog book (auto-import + borrow in one step, any logged-in user)
+// Borrow a World Catalog book (auto-import + borrow in one step)
 app.post('/api/transactions/borrow-external', authenticateToken, async (req, res) => {
   const { title, author, genre, description, coverImage, pdfUrl } = req.body;
   const userId = req.user.id;
@@ -241,12 +244,10 @@ app.post('/api/transactions/borrow-external', authenticateToken, async (req, res
   }
 
   try {
-    // Check if already borrowed by this user and not returned
     const { Op } = require('sequelize');
     const existingBook = await Book.findOne({ where: { title, author } });
 
     if (existingBook) {
-      // Check if this user already has it borrowed
       const alreadyBorrowed = await BorrowRecord.findOne({
         where: { UserId: userId, BookId: existingBook.id, returnDate: null }
       });
@@ -258,13 +259,11 @@ app.post('/api/transactions/borrow-external', authenticateToken, async (req, res
         return res.status(400).json({ error: 'This book is currently borrowed by someone else' });
       }
 
-      // Borrow the existing book
       const record = await BorrowRecord.create({ UserId: userId, BookId: existingBook.id });
       await existingBook.update({ available: false });
       return res.json({ message: 'Book borrowed successfully', recordId: record.id, bookId: existingBook.id });
     }
 
-    // Import the book into local library
     const newBook = await Book.create({
       title,
       author,
@@ -272,7 +271,7 @@ app.post('/api/transactions/borrow-external', authenticateToken, async (req, res
       description: (description || '').slice(0, 1000),
       coverImage: coverImage || '',
       pdfUrl: pdfUrl || '#',
-      available: false // immediately mark as borrowed
+      available: false
     });
 
     const record = await BorrowRecord.create({ UserId: userId, BookId: newBook.id });
@@ -283,29 +282,32 @@ app.post('/api/transactions/borrow-external', authenticateToken, async (req, res
   }
 });
 
-
 app.post('/api/transactions/return', authenticateToken, async (req, res) => {
   const { recordId } = req.body;
   const userId = req.user.id;
-  
+
   const record = await BorrowRecord.findOne({ where: { id: recordId, UserId: userId, returnDate: null } });
   if (!record) {
     return res.status(400).json({ error: 'Invalid record or already returned' });
   }
-  
+
   await record.update({ returnDate: new Date() });
   const book = await Book.findByPk(record.BookId);
   await book.update({ available: true });
-  
+
   res.json({ message: 'Book returned successfully' });
 });
 
 app.get('/api/users/dashboard', authenticateToken, async (req, res) => {
   const userId = req.user.id;
-  const records = await BorrowRecord.findAll({ 
+  const records = await BorrowRecord.findAll({
     where: { UserId: userId },
     include: [Book]
   });
   res.json(records);
 });
 
+// Start Server — always last, after all routes and middleware are registered
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
