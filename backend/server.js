@@ -7,6 +7,11 @@ const jwt = require('jsonwebtoken');
 const app = express();
 const SECRET_KEY = 'super_secret_library_key';
 const PORT = process.env.PORT || 3000;
+
+// Start Server
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
 const path = require("path");
 const dbPath = path.join(__dirname, "library.sqlite");
 // Middleware
@@ -304,7 +309,3 @@ app.get('/api/users/dashboard', authenticateToken, async (req, res) => {
   res.json(records);
 });
 
-// Start Server
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
