@@ -7,7 +7,10 @@ const jwt = require('jsonwebtoken');
 const app = express();
 const port = 5000;
 const SECRET_KEY = 'super_secret_library_key';
-
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
 // Middleware
 app.use(cors());
 app.use(express.json());
