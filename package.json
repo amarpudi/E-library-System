@@ -1,0 +1,16 @@
+{
+  "name": "luminaLib-e-library-system",
+  "version": "1.0.0",
+  "description": "LuminaLib — Full-stack E-Library Management System",
+  "private": true,
+  "scripts": {
+    "start:backend": "cd backend && npm start",
+    "start:frontend": "cd frontend && npm run dev",
+    "install:backend": "cd backend && npm install",
+    "install:frontend": "cd frontend && npm install",
+    "install:all": "npm run install:backend && npm run install:frontend"
+  },
+  "keywords": ["e-library", "ebook", "management", "react", "express", "sqlite"],
+  "author": "",
+  "license": "ISC"
+}
